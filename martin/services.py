@@ -2,14 +2,24 @@ import datetime as dt
 import json
 import re
 
-from sqlalchemy import func, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .config import Settings
 from .errors import AppError, bad_request, forbidden, not_found
-from .models import Checkin, Group, GroupMember, Member, Message, WakeConfig
+from .models import (
+    Checkin,
+    Group,
+    GroupMember,
+    Member,
+    Message,
+    TempGrant,
+    WakeConfig,
+    WakeQueue,
+)
 from .security import gen_invite_code, sha256_hex
 from .serialize import message_dict
+from .timeutil import as_utc, now_utc
 from . import wake
 
 ALL_AGENTS = "all agents"
@@ -133,8 +143,164 @@ async def get_member_or_404(db: AsyncSession, public_id: str) -> Member:
     return member
 
 
+# ---------------------------------------------------------------- 临时授权
+
+TEMP_REDACT_PATTERNS = (
+    (re.compile(r"martin_[A-Za-z0-9_\-]{8,}"), "[已脱敏]"),
+    (re.compile(r"(?i)bearer\s+[A-Za-z0-9._\-]{8,}"), "Bearer [已脱敏]"),
+)
+
+
+def temp_grant_can_renew(
+    grant: TempGrant, now: dt.datetime | None = None
+) -> bool:
+    now = now or now_utc()
+    return grant.revoked_at is None and now < as_utc(grant.max_access_at)
+
+
+def temp_grant_status(grant: TempGrant, now: dt.datetime | None = None) -> str:
+    """授权状态；优先级 revoked > closed > expired > unredeemed > exhausted > active。
+
+    截止时间一律按 UTC 比较：库里即使读到 naive 值（老库 timestamp 列），
+    也不会因为时区差被误判成过期。
+    """
+    now = now or now_utc()
+    if grant.revoked_at is not None:
+        return "revoked"
+    if grant.closed_at is not None:
+        return "closed"
+    if as_utc(grant.expires_at) <= now:
+        return "expired"
+    if grant.redeemed_at is None:
+        return "unredeemed"
+    if grant.messages_used >= grant.max_messages:
+        return "exhausted"
+    return "active"
+
+
+async def get_temp_grant_for_group(
+    db: AsyncSession, group_id: int
+) -> TempGrant | None:
+    row = await db.execute(select(TempGrant).where(TempGrant.group_id == group_id))
+    return row.scalar_one_or_none()
+
+
+async def expire_temp_grant(
+    db: AsyncSession, grant: TempGrant, *, dissolve: bool = True
+) -> Group | None:
+    """活动窗口到期：清 token，可选 dissolve 群，但不写 closed_at。
+
+    访客到期时用 dissolve=False：清掉访客 token，但把群留着，让已经开始的 agent
+    回复有宽限期可以落库；宽限期结束后 agent 再发才会 dissolve。
+    这样 owner 仍能在 max_access_at 之前从历史里续验证码，历史消息原样保留。
+    """
+    now = now_utc()
+    grant.session_token_hash = None
+    if not dissolve:
+        return None
+    group = await db.get(Group, grant.group_id) if grant.group_id else None
+    if group is not None and group.dissolved_at is None:
+        group.dissolved_at = now
+        await db.execute(
+            delete(WakeQueue).where(
+                WakeQueue.group_id == group.id, WakeQueue.status == "pending"
+            )
+        )
+    return group
+
+
+async def close_temp_grant(
+    db: AsyncSession, grant: TempGrant, reason: str
+) -> Group | None:
+    """结束授权：失效访客 token、dissolve 临时群、清掉待派发唤醒。
+
+    不 commit，由调用方决定事务边界；群上的 system 消息由调用方补充。
+    """
+    now = now_utc()
+    if reason == "revoked":
+        grant.revoked_at = now
+    else:
+        grant.closed_at = now
+    grant.close_reason = reason
+    grant.session_token_hash = None
+    group = await db.get(Group, grant.group_id) if grant.group_id else None
+    if group is not None and group.dissolved_at is None:
+        group.dissolved_at = now
+        await db.execute(
+            delete(WakeQueue).where(
+                WakeQueue.group_id == group.id, WakeQueue.status == "pending"
+            )
+        )
+    return group
+
+
+def reject_temp_group_ops(group: Group) -> None:
+    """临时群的成员/元数据/生命周期只能由 TempGrant 接口管理。"""
+    if group.kind == "temp":
+        raise AppError(
+            "temp_no_group_ops",
+            "临时会话由授权生命周期管理，不能直接加入、邀请、退出或解散",
+            403,
+        )
+
+
+async def ensure_temp_open(
+    db: AsyncSession,
+    group: Group,
+    *,
+    allow_after_expiry: bool = False,
+    grace_seconds: int = 0,
+) -> TempGrant | None:
+    """临时群的消息守卫：结束/到期后拒绝写入，并尽量把过期群收尾。
+
+    allow_after_expiry 只给 agent 的最终回复用：活动窗口到期后，agent 仍可在
+    grace_seconds 内把已经开始的一轮回复写完；访客始终没有宽限。
+    """
+    if group.kind != "temp":
+        return None
+    grant = await get_temp_grant_for_group(db, group.id)
+    if grant is None:
+        raise AppError("temp_closed", "临时会话不存在或已结束", 403)
+    status = temp_grant_status(grant)
+    if status in ("revoked", "closed"):
+        if group.dissolved_at is None:
+            group.dissolved_at = now_utc()
+            await db.commit()
+        raise AppError("temp_closed", "临时会话已结束", 403)
+    if status in ("expired", "unredeemed"):
+        now = now_utc()
+        if status == "unredeemed":
+            # 走到这里的一定是续期待核销（按群反查的授权必有 group_id）：
+            # owner 已续期、窗口与条数重置、群保留，访客还没输入新码。
+            # 授权是活的，agent 的在途回复照常落库，访客重新进入后就能看到。
+            return grant
+        if (
+            allow_after_expiry
+            and now < as_utc(grant.expires_at) + dt.timedelta(seconds=max(0, grace_seconds))
+        ):
+            return grant
+        await expire_temp_grant(db, grant)
+        await db.commit()
+        raise AppError("temp_expired", "临时会话已到期", 403)
+    return grant
+
+
+def redact_temp_text(text: str, settings: Settings) -> str:
+    """最小脱敏：只拦常见 token 形态，防手滑，不作为安全边界。"""
+    if not settings.temp_redact_enabled:
+        return text
+    for pattern, replacement in TEMP_REDACT_PATTERNS:
+        text = pattern.sub(replacement, text)
+    return text
+
+
 async def parse_mentions(
-    db: AsyncSession, group_id: int, author: Member, text: str, mentions: list[str]
+    db: AsyncSession,
+    group_id: int,
+    author: Member,
+    text: str,
+    mentions: list[str],
+    scan_text: bool = True,
 ) -> tuple[list[int], bool, str | None]:
     rows = await db.execute(
         select(Member).join(GroupMember, GroupMember.member_id == Member.id).where(
@@ -168,12 +334,12 @@ async def parse_mentions(
             matched_names.add(m.name)
 
     for name, m in by_name.items():
-        if f"@{name}" in text:
+        if scan_text and f"@{name}" in text:
             mentioned[m.id] = m
             matched_names.add(name)
 
     hint_parts = []
-    for tok in AT_NAME_RE.findall(text):
+    for tok in AT_NAME_RE.findall(text) if scan_text else []:
         if tok == ALL_AGENTS:
             continue
         if any(tok.startswith(n) for n in matched_names):
@@ -220,6 +386,7 @@ async def send_message(
     payload,
     bus=None,
     kick=None,
+    allow_text_mentions: bool = True,
 ) -> dict:
     if len(payload.text) > settings.message_max_length:
         raise AppError("text_too_long", "消息超过长度上限", 422)
@@ -227,6 +394,12 @@ async def send_message(
         raise AppError("group_archived", "群已归档，只能查看历史消息", 403)
 
     gm = await active_membership(db, group.id, author.id)
+    await ensure_temp_open(
+        db,
+        group,
+        allow_after_expiry=not author.human,
+        grace_seconds=settings.temp_agent_reply_grace_seconds,
+    )
 
     bucket = int(dt.datetime.now(dt.timezone.utc).timestamp() // 3600)
     count = await cache.incr(f"martin:gr:{group.id}:{bucket}", 3600)
@@ -243,7 +416,12 @@ async def send_message(
             raise bad_request("replyTo 不存在", "invalid_reply")
 
     mentioned_ids, all_agents, mention_hint = await parse_mentions(
-        db, group.id, author, payload.text, payload.mentions
+        db,
+        group.id,
+        author,
+        payload.text,
+        payload.mentions,
+        scan_text=allow_text_mentions,
     )
 
     priority = getattr(payload, "priority", "normal") or "normal"
@@ -350,6 +528,12 @@ async def send_message(
         msg_type = "question"
         msg_text, question_payload = render_question(payload.question)
 
+    if group.kind == "temp" and not author.human:
+        # 访客页面是纯文本；不给结构化的 question payload，避免正文之外再泄露一份。
+        if msg_type == "question":
+            question_payload = None
+        msg_text = redact_temp_text(msg_text, settings)
+
     next_seq = max_seq + 1
     msg = Message(
         group_id=group.id,
@@ -387,7 +571,7 @@ async def send_message(
                 replied_agent_id = t_author.id
 
     targets = await wake.wake_targets(
-        db, group.id, author, mentioned_ids, replied_agent_id, all_agents
+        db, group, author, mentioned_ids, replied_agent_id, all_agents
     )
     target_members = await _members_by_ids(db, list(targets))
     states = await push_states(db, target_members, bus)
@@ -410,7 +594,7 @@ async def send_message(
     # 队列是待唤醒事实的唯一来源：目标一律入队，能否投递由派发器判定
     await wake.enqueue_for_message(
         db,
-        group.id,
+        group,
         author,
         mentioned_ids,
         replied_agent_id,

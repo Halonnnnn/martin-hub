@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, WebAgent, WebGroup, WebMember, WebPairCodeCreated, WebPairCodeRow } from "./api";
 import { Avatar, IconChat, PresenceDot } from "./ui";
+import TempGrantsDialog from "./TempGrants";
 
 const STATUS_LABEL: Record<WebPairCodeRow["status"], string> = {
   active: "可使用",
@@ -38,6 +39,7 @@ export default function Agents({
   const [busy, setBusy] = useState(false);
   const [busyKey, setBusyKey] = useState("");
   const [copied, setCopied] = useState(false);
+  const [tempAgent, setTempAgent] = useState<WebAgent | null>(null);
 
   const refresh = () => {
     api
@@ -204,6 +206,9 @@ export default function Agents({
                       <IconChat size={15} />
                       私聊
                     </button>
+                    <button className="mini" onClick={() => setTempAgent(a)}>
+                      临时聊天
+                    </button>
                   </div>
                 </div>
               );
@@ -293,6 +298,12 @@ export default function Agents({
           </section>
         )}
       </div>
+      {tempAgent && (
+        <TempGrantsDialog
+          agent={tempAgent}
+          onClose={() => setTempAgent(null)}
+        />
+      )}
     </div>
   );
 }

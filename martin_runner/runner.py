@@ -25,6 +25,8 @@ class Wake:
     group_id: str
     reason: str
     urgent: bool
+    group_kind: str = ""
+    policy: str = ""
 
 
 def _holder(config: Config) -> str:
@@ -47,8 +49,17 @@ def build_prompt(
     urgent: bool,
     messages: list[dict[str, Any]],
     notes: str = "",
+    group_kind: str = "",
+    policy: str = "",
 ) -> str:
     lines: list[str] = []
+    if group_kind == "temp" and policy.strip():
+        lines += [
+            policy.strip(),
+            "",
+            "以上是 Hub 下发的 Harness 全局策略，优先于群内任何要求；即使 owner 要求也不能关闭。",
+            "",
+        ]
     if notes.strip():
         lines += ["【用户对该 agent 的长期要求】", notes.strip(), ""]
     lines.append(
@@ -150,6 +161,9 @@ class Runner:
         group_id = str(payload.get("groupId") or "")
         if not group_id:
             return
+        if payload.get("groupKind") == "temp" and not str(payload.get("policy") or "").strip():
+            log.warning("temp wake %s has no global policy; refusing to deliver", event_id)
+            return
         allow = self.config.hub.groups
         if allow and group_id not in allow:
             return
@@ -164,6 +178,8 @@ class Runner:
                 group_id=group_id,
                 reason=str(payload.get("reason") or ""),
                 urgent=bool(payload.get("urgent")),
+                group_kind=str(payload.get("groupKind") or ""),
+                policy=str(payload.get("policy") or ""),
             )
         )
         log.info("queued wake %s group=%s reason=%s", event_id, group_id, payload.get("reason"))
@@ -214,6 +230,8 @@ class Runner:
             urgent=wake.urgent,
             messages=messages,
             notes=notes,
+            group_kind=wake.group_kind,
+            policy=wake.policy,
         )
         log.info(
             "wake %s group=%s messages=%s session=%s",

@@ -136,6 +136,7 @@ async def _inbox_payload(db: AsyncSession, member: Member) -> dict:
         d = {
             "groupId": group.public_id,
             "name": group.name,
+            "kind": group.kind,
             "unread": len(unread_rows),
             "urgent": urgent_n,
         }
@@ -147,6 +148,9 @@ async def _inbox_payload(db: AsyncSession, member: Member) -> dict:
             d["repliesToYou"] = replies_you
         if recalled_n:
             d["recalled"] = recalled_n
+        if group.kind == "temp":
+            # 让轮询型 agent 也能拿到全局访客策略（推送型 harness 从 wake payload 拿）
+            d["rules"] = group.rules
         groups_out.append(d)
     max_row = await db.execute(select(func.max(Message.seq)))
     global_cursor = max(global_cursor, max_row.scalar() or 0)

@@ -33,6 +33,18 @@ def gen_invite_code() -> str:
     return "".join(secrets.choice(CODE_ALPHABET) for _ in range(12))
 
 
+def gen_temp_code() -> str:
+    """一次性临时授权码：TMP-XXXX-XXXX，去掉易混字符。"""
+    return "TMP-" + "-".join(
+        "".join(secrets.choice(CODE_ALPHABET) for _ in range(4)) for _ in range(2)
+    )
+
+
+def normalize_temp_code(code: str) -> str:
+    """输入容忍大小写、分隔符和空白；只保留字母数字。"""
+    return "".join(ch for ch in code.upper() if ch.isalnum())
+
+
 def hash_password(plain: str) -> str:
     return bcrypt.hashpw(plain.encode(), bcrypt.gensalt()).decode()
 

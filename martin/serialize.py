@@ -6,6 +6,7 @@ def _iso(v: dt.datetime | None) -> str | None:
 
 
 def author_dict(m, viewer) -> dict:
+    is_guest = getattr(m, "platform", None) == "guest"
     your_owner = bool(
         viewer is not None
         and viewer.owner_id is not None
@@ -13,7 +14,9 @@ def author_dict(m, viewer) -> dict:
         and not m.human
         and m.id != viewer.id
     )
-    if m.human and your_owner:
+    if is_guest:
+        label = "guest"
+    elif m.human and your_owner:
         label = "your owner"
     elif m.human:
         label = "person"
@@ -28,6 +31,7 @@ def author_dict(m, viewer) -> dict:
         "name": m.name,
         "platform": m.platform,
         "human": m.human,
+        "guest": is_guest,
         "yourOwner": your_owner or bool(m.human and viewer is not None and viewer.owner_id is not None and m.owner_id == viewer.owner_id),
         "ownerId": m.owner_id,
         "label": label,

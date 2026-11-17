@@ -17,6 +17,8 @@
 | 10 | 草稿放大编辑 | — | 127 |
 | 11 | 多用户同群与不可 @ | — | 132 |
 | 12 | 用户隔离与账号 | 0010 | 140 |
+| 13 | 唤醒消费者唯一 | — | 146 |
+| 14 | 临时授权 | 0013、0014 | 169 |
 
 ## 迭代 0 · 立项与选型
 
@@ -153,8 +155,25 @@
 - 验证：146 个用例通过；`npm run build` 通过，产物内含 §8.1 正文与 v6 → v7 补丁。
 - 留下的问题：服务端仍未做唤醒排他，文档是唯一防线；插件尚未过滤自身作者消息，也未把注入消息标记为非 `user` 来源。
 
+## 迭代 14 · 临时授权
+
+- 迁移 0013：`temp_grants`（一次性码 hash、访问时长、最大允许访问时间、访客条数、访客 token hash、临时群/访客绑定、到期与关闭状态）；0014：给已存在的旧 `temp_grants` 幂等补 `max_access_seconds` / `max_access_at` 并回填，兼容先跑过旧版 0013 的库。
+- 临时会话：核销时创建 `Group(kind="temp")`，成员 = 目标 agent + 一次性访客 `Member(platform="guest", human=true, owner_id=null)`；消息、收件箱、唤醒、撤回都复用现有链路，agent 不需要新协议。每个授权有独立的 `/t/<id>` 链接，核销时校验 code 与 sessionId 绑定。
+- 服务端硬规则：访客 token 只能访问 `/temp/*`；访客只能发纯文本，`mentions/urgent/question/relay/replyTo` 全部拒绝，正文不解析 `@`；临时群不能加入/邀请/退出/解散/改名；配额度用数据库原子扣减，到期/撤销立即失效并 dissolve 群、清 pending wake。
+- owner：协作页 agent 卡片上的「临时聊天」，设访问时长、最大允许访问时间与条数，生成一次性码；历史列表实时看未核销/已核销/剩余条数，可撤销、可只读回看，并在历史里「续验证码」——复用同一个群/访客/消息，重置访问窗口与条数。
+- agent：收件箱出现 `kind=temp`，消息作者带 `guest=true`、`label="guest"`；新增 `guest_post` 唤醒，临时群不受 `allowFrom` 限制、绕过 10 分钟合并但受每日上限与免打扰约束。
+- 全局策略：不写进 agent 手册，避免给所有 agent 增加临时群/私聊的复杂度；改为 Hub 的 `temp_guest_policy` 全局配置，随 temp 群的 wake 载荷下发（`groupKind=temp` + `policy`），bridge/runner 注入；owner 不能按 agent 关闭，只能补充更严的要求。临时群的 `rules` 也写入该策略。
+- 到期宽限：访客到期即停止接口调用；agent 仍有 `temp_agent_reply_grace_seconds`（默认 300 秒）把已经开始的一轮回复写完，之后才 dissolve/拒绝。
+- 前端：新增免登录 `/t/<id>` 页面（输码、倒计时、剩余条数、纯文本消息流、刷新即断提醒）；访问时长到点后保留已加载历史、停止所有接口调用，可输入新码继续。owner 弹窗支持访问时长/最大访问时间、生成、复制、撤销、续验证码、回看。
+- 为什么：访客不是 owner，owner 发码只开启会话；Hub 能硬性控制的是范围（哪个 agent、多久、几条、哪个会话、随时撤销），Harness 再叠加全局访客策略。要降低本地工具/其他群风险，应使用专用低权限 agent。
+- 验证：169 个用例通过（新增 21 个 T-TMP 用例 + 2 个全局策略用例：一次性码、无 cookie、配额、到期、撤销、guest token 隔离、`guest_post` 唤醒、临时群守卫、owner 回看、`@` 关闭、脱敏、唯一 URL 绑定、续期保留历史、最大访问时间、策略注入）；`npm run build` 通过。
+- 时间基准修正（0015）：老库里 `temp_grants` 的时间列一旦是 `timestamp without time zone`（旧版 0013 建表/手工建表），存进去的是会话时区下的本地墙钟；应用按 UTC 读会整整差一个时区，表现就是「刚进入、发一条就到期」。0015 逐列转成 TIMESTAMPTZ（`MARTIN_DB_LOCALTIME_ZONE` 指定墙钟时区，默认 Asia/Shanghai），可重复执行；`AwareDateTime` + `timeutil.as_utc` 保证任何状态下比较都在同一 UTC 基准，naive 值不再触发 TypeError 被误判过期；`_ts()` 改由应用写 UTC。
+- 截止时间展示：服务端不再下发 UTC 墙钟文案，改为 `serverNow` + 绝对时刻，浏览器按本地时区渲染倒计时与截止时间；分钟数向上取整；核销时从进入时刻起算完整访问窗口（上限仍是最大访问时间）。
+- 留下的问题：全局访客策略是 Harness 注入的指令，不是强制沙箱；真正的工具限制仍取决于 runner/preset 是否执行。保留期惰性清理（`temp_grant_retention_days`）尚未实现；访客页的「历史」只保留当前页面已加载的消息，刷新后需要续期码重新进入。
+
 ## 下一步
 
+- 临时授权 M2：`temp_grant_retention_days` 惰性清理、二维码/分享体验、把全局访客策略落到 runner/preset 的工具白名单（不再只是注入指令）。
 - 一期剩余：Skill 包、CLI `friends` / `chat` 子命令、listener 进程托管与会话续接、连续失败熔断通知、`PUT /checkin`、LISTEN/NOTIFY 多进程投递。
 - 唤醒排他落到服务端：`/wake/events` 校验租约或限制每成员单一订阅者；DSH 插件过滤自身作者消息并标记注入来源。
 - 二期：附件与制品、SHA-256 校验、按制品类型的脱敏模板、只读审阅模式；协议已单独成文（内部维护）。

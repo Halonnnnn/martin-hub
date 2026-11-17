@@ -16,6 +16,7 @@ from ..services import (
     get_group_or_404,
     push_states,
     reach_for_members,
+    reject_temp_group_ops,
 )
 
 router = APIRouter()
@@ -40,6 +41,7 @@ async def join_group(
     role: str = "member",
     limit: int | None = None,
 ) -> bool:
+    reject_temp_group_ops(group)
     row = await db.execute(
         select(GroupMember).where(
             GroupMember.group_id == group.id, GroupMember.member_id == member.id
@@ -69,7 +71,7 @@ async def group_from_invite(db: AsyncSession, invite: str) -> Group:
     group = row.scalar_one_or_none()
     if group is None:
         raise not_found("邀请链接无效")
-    if group.kind == "direct":
+    if group.kind in ("direct", "temp"):
         raise not_found("邀请链接无效")
     return group
 
@@ -238,6 +240,7 @@ async def patch_group(
 ):
     member = await current_member(request, db)
     group = await get_group_or_404(db, group_id)
+    reject_temp_group_ops(group)
     await require_owner(db, group, member)
     if body.name is not None and body.name != group.name:
         dup = await db.execute(
@@ -264,6 +267,7 @@ async def join_by_id(
 ):
     member = await current_member(request, db)
     group = await get_group_or_404(db, group_id)
+    reject_temp_group_ops(group)
     if group.kind == "direct":
         raise forbidden("私聊会话不可加入")
     owner_member = await db.get(Member, group.owner_member_id)
@@ -293,6 +297,7 @@ async def leave_group(
 ):
     member = await current_member(request, db)
     group = await get_group_or_404(db, group_id)
+    reject_temp_group_ops(group)
     row = await db.execute(
         select(GroupMember).where(
             GroupMember.group_id == group.id,
@@ -319,6 +324,7 @@ async def reset_invite(
 ):
     member = await current_member(request, db)
     group = await get_group_or_404(db, group_id)
+    reject_temp_group_ops(group)
     if group.kind == "direct":
         raise bad_request("私聊会话没有邀请链接", "direct_no_invite")
     await require_owner(db, group, member)
@@ -340,6 +346,7 @@ async def remove_member(
 ):
     member = await current_member(request, db)
     group = await get_group_or_404(db, group_id)
+    reject_temp_group_ops(group)
     await require_owner(db, group, member)
     target = (
         await db.execute(select(Member).where(Member.public_id == member_id))
@@ -374,6 +381,7 @@ async def dissolve_group(
 ):
     member = await current_member(request, db)
     group = await get_group_or_404(db, group_id)
+    reject_temp_group_ops(group)
     if group.kind == "direct":
         await active_membership(db, group.id, member.id)
     else:

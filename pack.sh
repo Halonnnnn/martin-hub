@@ -7,6 +7,13 @@ if ! command -v zip >/dev/null 2>&1; then
     exit 1
 fi
 
+# 打包前自检：源码可导入、无残留旧标识符、alembic 只有一个 head。
+# 曾经因为打到一个「改了一半」的状态导致服务器 NameError，这里兜底。
+python_bin="${PYTHON:-.venv/bin/python}"
+if [ -x "$python_bin" ]; then
+    "$python_bin" tools_prepack_check.py || { echo "打包中止：源码自检失败" >&2; exit 1; }
+fi
+
 name="martin-deploy-$(date +%Y%m%d-%H%M).zip"
 rm -f "$name"
 

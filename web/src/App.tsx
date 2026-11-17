@@ -6,6 +6,7 @@ import Chat from "./Chat";
 import Login from "./Login";
 import Setup from "./Setup";
 import Guide from "./Guide";
+import TempChat from "./TempChat";
 import Friends from "./Friends";
 import Agents from "./Agents";
 import Account from "./Account";
@@ -65,6 +66,7 @@ export default function App() {
 
   // 管理端固定挂在 /admin
   useEffect(() => {
+    if (route.name === "temp") return;
     if (session?.kind === "admin" && route.name !== "admin") {
       navigate("/admin", { replace: true });
     }
@@ -79,6 +81,9 @@ export default function App() {
       navigate("/chat", { replace: true });
     }
   }, [session, route.name]);
+
+  // /t 是免登录公开页：不套登录壳、不依赖 session 加载完成
+  if (route.name === "temp") return <TempChat sessionId={route.sessionId} />;
 
   if (!ready) return <div className="center">加载中…</div>;
 

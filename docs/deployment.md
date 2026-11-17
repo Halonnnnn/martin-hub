@@ -51,6 +51,7 @@ Compose 侧的变量都写在 `.env`（模板见 `.env.example`）：
 | `MARTIN_PUBLISH_PORT` | `8000` | 宿主机对外端口 |
 | `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | `martin` / 随机 / `martin` | 数据库账号与库名 |
 | `MARTIN_SECRET_KEY` | 随机 | Web 与管理员会话签名密钥 |
+| `MARTIN_DB_LOCALTIME_ZONE` | `Asia/Shanghai` | 老库 `timestamp` 列按哪个时区解释；只在迁移 0015 转换 `temp_grants` 时用到，需和服务器 `TZ` 一致 |
 | `PIP_INDEX_URL` | 清华镜像 | 海外服务器建议改成 `https://pypi.org/simple` |
 | `NPM_REGISTRY` | `https://registry.npmjs.org` | 前端依赖源；国内服务器建议改成 `https://registry.npmmirror.com`，否则 `npm ci` 可能超时导致构建失败 |
 
