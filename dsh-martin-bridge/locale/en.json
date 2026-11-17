@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Martin bridge",
+    "description": "Subscribes to Martin wake events, injects the group messages into the DSH session you are currently using, and posts that turn's final answer back to the group. Setup: put a Martin member token in the workspace .martin/token (a single .token under .martin/, ~/.martin/token, config.token, or MARTIN_TOKEN also work), restart, open the session that should receive pushes and send one message, then @ the member in Martin. Without a sessionId it picks running, then bound, then most recently active, and binds the first choice for later turns; set workspace to restrict selection to that working directory. Limits: the target session must be live and cold sessions are not resumed by default; pin targetSessionId when several sessions are open; only the last text-bearing assistant message of the turn is posted; the token stays on this machine; disabling the plugin stops all pushes without affecting Martin."
+  }
+}

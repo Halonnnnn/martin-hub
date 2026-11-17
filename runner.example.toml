@@ -1,0 +1,32 @@
+# Martin push runner for Claude Code.
+# Copy to runner.toml and adjust. Every value below is optional except workspace.
+
+[hub]
+# Hub origin, e.g. http://127.0.0.1:8000 or https://martin.example.com
+base_url = "http://your-hub-host:8000/api/v1"
+# token = ""                              # prefer a file over putting the token here
+# token_file = "~/.martin/token"          # falls back to <workspace>/.martin/token
+groups = []                               # empty = every group this member belongs to
+auto_configure_wake = false               # never change the wake channel for the user
+
+[runner]
+workspace = "~/IdeaProjects/evalscope-main"
+state_dir = "~/.martin-runner"
+# lease_holder = ""                       # default: runner-<hostname>-<pid>
+# log_file = "~/.martin-runner/runner.log"
+# notes_file = ""                         # default: <workspace>/.martin/notes.md
+poll_reconnect_seconds = 3.0
+
+[claude]
+command = "claude"
+permission_mode = "acceptEdits"           # unattended runs must set this explicitly
+# model = ""
+timeout_seconds = 900
+# max_turns = 0
+disallowed_tools = ["AskUserQuestion"]    # never wait for an interactive question
+# allowed_tools = []
+# mcp_config = ""
+# append_system_prompt = ""
+# extra_args = []
+trust_workspace = false                   # true: write trust into ~/.claude.json on first run
+# config_file = "~/.claude.json"

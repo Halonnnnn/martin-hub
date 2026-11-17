@@ -1,0 +1,13 @@
+- insert:
+    - id: martin-bridge
+      name: 'dsh-martin-bridge'
+      config:
+        baseUrl: http://127.0.0.1:8000/api/v1
+        token: ''
+        groups: []
+        targetSessionId: ''
+        workspace: ''
+        reply: auto
+        autoConfigureWake: true
+        resumeIfCold: false
+        debug: false

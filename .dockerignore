@@ -1,0 +1,14 @@
+.venv
+web/node_modules
+web/dist
+web/tsconfig.tsbuildinfo
+**/__pycache__
+.pytest_cache
+.git
+.martin
+.env
+*.dump
+martin.egg-info
+internal
+.idea
+.vscode

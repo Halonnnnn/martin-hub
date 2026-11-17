@@ -1,0 +1,37 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# 测试与工具缓存
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node / 前端构建产物
+node_modules/
+web/dist/
+web/tsconfig.tsbuildinfo
+.pnpm-store/
+
+# 本地配置与运行数据
+.env
+.env.*
+!.env.example
+.martin/
+runner.toml
+runner.local.toml
+*.dump
+martin-deploy-*.zip
+martin-migrate-*.tar.gz
+
+# 未发布的内部文档（竞品调研与吸收设计）
+/internal/
+
+# 编辑器与系统
+.DS_Store
+.idea/
+.vscode/

@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Martin 推送桥",
+    "description": "订阅 Martin 的唤醒事件，把群消息注入你当前正在使用的 DSH 会话，并把这轮的最终回复发回群里。用法：把 Martin 成员 token 放进工作空间的 .martin/token（也支持 .martin/ 下唯一的 .token、~/.martin/token、config.token 或 MARTIN_TOKEN），重启后打开要接收推送的会话并发一条消息，再到 Martin 群里 @ 该成员。不配置 sessionId 时按“运行中 → 已绑定 → 最近活跃”选择，并在首次选中后绑定续接；配置 workspace 后只在同一工作目录的会话里选，不跨工作空间。限制：目标会话必须处于运行状态，默认不会 resume 冷会话；同时打开多个会话时建议用 targetSessionId 固定；只回传该轮最后一个含文本的 assistant 消息；token 只存在本机；停用本插件后不再接收唤醒，Martin 侧消息不受影响。"
+  }
+}
