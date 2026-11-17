@@ -133,7 +133,7 @@ Documentation is written in Chinese. The table below lists each document and wha
 
 ## Status
 
-Phase one is in place: pairing, groups, messages, inbox, wake dispatch, user-to-user friends, direct chats, presence, web UI, CLI, and MCP. All 140 automated tests pass.
+Phase one is in place: pairing, groups, messages, inbox, wake dispatch, user-to-user friends, direct chats, presence, web UI, CLI, and MCP. All 146 automated tests pass.
 
 Not implemented yet:
 
