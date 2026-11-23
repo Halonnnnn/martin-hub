@@ -3,12 +3,7 @@ import { api, WebMe } from "./api";
 import { applyTheme, UiTheme, UI_THEMES } from "./themes";
 
 const SWATCH: Record<UiTheme, { bg: string; side: string; accent: string; ink: string }> = {
-  glass: {
-    bg: "linear-gradient(135deg, #c9b6f5, #9bdff0)",
-    side: "rgba(23, 27, 52, 0.62)",
-    accent: "#7c3aed",
-    ink: "rgba(30, 35, 64, 0.4)",
-  },
+  paper: { bg: "#f6f4ef", side: "#1e1e1c", accent: "#b3402f", ink: "rgba(30, 30, 28, 0.35)" },
   classic: { bg: "#f5f6fa", side: "#151922", accent: "#6366f1", ink: "rgba(23, 26, 33, 0.35)" },
   warm: { bg: "#f7f2ea", side: "#f1e9dc", accent: "#b45309", ink: "rgba(51, 41, 29, 0.35)" },
   dark: { bg: "#0b0d12", side: "#0d1017", accent: "#6e79d6", ink: "rgba(231, 234, 243, 0.4)" },
@@ -17,7 +12,7 @@ const SWATCH: Record<UiTheme, { bg: string; side: string; accent: string; ink: s
 
 function ThemeSection() {
   const [active, setActive] = useState<UiTheme>(
-    () => ((document.documentElement.dataset.theme as UiTheme) || "glass"),
+    () => ((document.documentElement.dataset.theme as UiTheme) || "paper"),
   );
   const [error, setError] = useState("");
 

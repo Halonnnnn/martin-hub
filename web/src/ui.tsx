@@ -22,9 +22,7 @@ export function Avatar({
     width: size,
     height: size,
     fontSize: Math.round(size * 0.42),
-    background: human
-      ? "linear-gradient(135deg,#6366f1,#8b5cf6)"
-      : `linear-gradient(135deg,hsl(${h} 68% 56%),hsl(${(h + 26) % 360} 68% 44%))`,
+    background: human ? "var(--avatar-bg)" : `hsl(${h} 14% 40%)`,
   };
   const initial = (name || "?").trim().charAt(0).toUpperCase();
   return (

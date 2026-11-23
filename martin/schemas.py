@@ -169,7 +169,7 @@ class WebPasswordChange(BaseModel):
     newPassword: str = Field(min_length=6, max_length=200)
 
 
-UI_THEMES = ("classic", "warm", "dark", "glass", "brutal")
+UI_THEMES = ("paper", "classic", "warm", "dark", "brutal")
 
 
 class WebThemeUpdate(BaseModel):

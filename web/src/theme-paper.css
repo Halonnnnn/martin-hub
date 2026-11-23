@@ -1,0 +1,374 @@
+/* ===== paper 纸墨（默认） =====
+   一套中性墨阶，朱砂一色只落在“轮到你说话”的地方：
+   发送、当前会话、未读。层级靠字号与颜色，不靠字重。 */
+:root {
+  --font-ui: "Inter", -apple-system, "PingFang SC", "Helvetica Neue",
+    "Segoe UI", "Noto Sans SC", sans-serif;
+  --font-display: "Songti SC", "Noto Serif SC", "Source Han Serif SC", Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+html[data-theme="paper"] {
+  color-scheme: light;
+  --bg: #f6f4ef;
+  --card: #fffefb;
+  --card-a: #fffefb;
+  --card-b: #fffefb;
+  --inset: #f1eee7;
+  --soft: #efece5;
+  --soft-2: #eae6de;
+  --soft-3: #e3ded4;
+  --row-alt: #faf8f4;
+  --line: rgba(30, 30, 28, 0.08);
+  --line-strong: rgba(30, 30, 28, 0.14);
+  --ink: #1e1e1c;
+  --ink-2: #46443f;
+  --muted: #7a766e;
+  --faint: #56595e;
+  --faint-2: #a5a097;
+  --brand-1: #b3402f;
+  --accent: var(--btn-brand);
+  --accent-ink: var(--brand-ink);
+  --accent-ink-strong: var(--brand-ink-strong);
+  --accent-wash: var(--brand-tint);
+  --accent-line: var(--brand-line);
+  --grad: none;
+  --brand-rgb: 179, 64, 47;
+  --brand2-rgb: 179, 64, 47;
+  --brand-deep-rgb: 90, 32, 23;
+  --on-brand: #fffaf6;
+  --brand-ink: #9c3728;
+  --avatar-bg: #5d5a53;
+  --brand-ink-strong: #7f2c1f;
+  --btn-brand: #b3402f;
+  --btn-ink: #fffaf6;
+  --brand-deep: #5a2017;
+  --brand-tint: #f8e6e1;
+  --brand-tint-b: #fbefeb;
+  --brand-tint-2: #f7e6e0;
+  --brand-tint-2b: #f7e6e0;
+  --brand-line: rgba(179, 64, 47, 0.2);
+  --brand-line-2: rgba(179, 64, 47, 0.28);
+  --brand-line-strong: rgba(179, 64, 47, 0.45);
+  --brand-disabled: #e2c6bf;
+  --code-bg: #22221f;
+  --code-ink: #e8e4da;
+  --backdrop-a: #f6f4ef;
+  --backdrop-b: #f6f4ef;
+  --chrome: rgba(246, 244, 239, 0.9);
+  --chrome-blur: 10px;
+  --ok-ink: #3f6b4a;
+  --ok-ink-2: #356041;
+  --ok-dot: #4e8a5d;
+  --ok-bg: #eef3ee;
+  --ok-line: rgba(78, 138, 93, 0.3);
+  --ok-rgb: 78, 138, 93;
+  --err-ink: #a8382c;
+  --err-ink-strong: #8a2b20;
+  --err-1: #a8382c;
+  --err-bg: #f8ebe8;
+  --err-rgb: 168, 56, 44;
+  --warn-ink: #805a1c;
+  --warn-ink-strong: #6b4a14;
+  --warn-ink-deep: #57400f;
+  --warn-1: #b3842a;
+  --warn-2: #b3842a;
+  --warn-rgb: 179, 132, 42;
+  --warn2-rgb: 179, 132, 42;
+  --warn-bg: #f8f1e2;
+  --warn-bg-b: #f8f1e2;
+  --warn-bg-soft: #fbf7ee;
+  --warn-bg-strong: #f3e8d1;
+  --warn-bg-strong-b: #f3e8d1;
+  --warn-line: rgba(179, 132, 42, 0.32);
+  --side-bg: #1e1e1c;
+  --side-bg-2: #1e1e1c;
+  --side-line: rgba(255, 250, 242, 0.07);
+  --side-line-strong: rgba(255, 250, 242, 0.08);
+  --side-ink: #ece8df;
+  --side-muted: #928d84;
+  --side-dim: rgba(255, 250, 242, 0.06);
+  --side-dim-2: rgba(255, 250, 242, 0.1);
+  --side-ring: rgba(255, 255, 255, 0.14);
+  --scrim: rgba(24, 23, 21, 0.42);
+  --ink-rgb: 30, 30, 28;
+  --r-lg: 14px;
+  --r-md: 10px;
+  --r-sm: 8px;
+  --shadow-1: 0 1px 2px rgba(30, 30, 28, 0.05);
+  --shadow-2: 0 1px 2px rgba(30, 30, 28, 0.05), 0 16px 40px -24px rgba(30, 30, 28, 0.28);
+  --ring: 0 0 0 3px rgba(179, 64, 47, 0.2);
+}
+
+html[data-theme="paper"] body {
+  font-family: var(--font-ui);
+  font-feature-settings: "cv11", "ss01";
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-theme="paper"] .brand,
+html[data-theme="paper"] .chat-title,
+html[data-theme="paper"] .doc-title,
+html[data-theme="paper"] .login-card h1,
+html[data-theme="paper"] .modal-card h3,
+html[data-theme="paper"] .friends-h,
+html[data-theme="paper"] .theme-card b,
+html[data-theme="paper"] .manual-body h1,
+html[data-theme="paper"] .manual-body h2,
+html[data-theme="paper"] .manual-body h3,
+html[data-theme="paper"] .doc-inner h2,
+html[data-theme="paper"] .resource-card h3,
+html[data-theme="paper"] .step-body h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+/* 侧栏：墨色纸面，选中用一道细朱砂刻度 */
+html[data-theme="paper"] .sidebar {
+  background: var(--side-bg);
+  border-right: none;
+}
+html[data-theme="paper"] .brand { font-weight: 600; font-size: 18px; color: var(--side-ink); }
+html[data-theme="paper"] .logo {
+  background: var(--side-dim-2);
+  border-radius: 8px;
+  box-shadow: none;
+  font-family: var(--font-display);
+  font-weight: 600;
+}
+html[data-theme="paper"] .side-nav button { color: var(--side-muted); border-radius: 8px; font-size: 13.5px; }
+html[data-theme="paper"] .side-nav button:hover { background: var(--side-dim); color: var(--side-ink); }
+html[data-theme="paper"] .side-nav button.on {
+  background: var(--side-dim);
+  color: var(--side-ink);
+  font-weight: 500;
+  box-shadow: none;
+}
+html[data-theme="paper"] .side-nav button.on svg { color: var(--accent-ink); }
+html[data-theme="paper"] .side-tabs-track { background: var(--side-dim); border-radius: 8px; }
+html[data-theme="paper"] .side-tab { font-size: 12px; border-radius: 6px; }
+html[data-theme="paper"] .group-list li { color: var(--side-muted); border-radius: 8px; font-size: 13.5px; }
+html[data-theme="paper"] .group-list li:hover { background: var(--side-dim); color: var(--side-ink); }
+html[data-theme="paper"] .group-list li.active {
+  background: var(--side-dim-2);
+  color: var(--side-ink);
+  font-weight: 500;
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+html[data-theme="paper"] .badge {
+  background: none;
+  box-shadow: none;
+  color: var(--accent-ink);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 0 2px;
+  min-width: 0;
+  font-variant-numeric: tabular-nums;
+}
+html[data-theme="paper"] .side-owner,
+html[data-theme="paper"] .side-user {
+  background: none;
+  border-color: var(--side-line);
+  border-radius: 8px;
+}
+html[data-theme="paper"] .peer-tag { background: var(--side-dim); color: var(--side-muted); border-radius: 4px; }
+html[data-theme="paper"] .avatar { font-weight: 600; box-shadow: none; }
+
+/* 主区：纸底，不加任何光晕 */
+html[data-theme="paper"] .chat-pane { background: var(--bg); }
+html[data-theme="paper"] .chat-head {
+  background: var(--chrome);
+  border-bottom-color: var(--line);
+}
+html[data-theme="paper"] .chat-title { font-weight: 600; font-size: 16px; }
+html[data-theme="paper"] .chat-presence,
+html[data-theme="paper"] .peer-type,
+html[data-theme="paper"] .chat-id { border-radius: 5px; }
+html[data-theme="paper"] .chat-presence { background: none; padding: 0; gap: 6px; }
+html[data-theme="paper"] .chat-presence.offline { background: none; }
+html[data-theme="paper"] .head-btn { background: none; border: var(--bw) solid var(--line-strong); border-radius: 8px; font-weight: 500; }
+html[data-theme="paper"] .head-btn:hover { background: var(--soft); }
+
+html[data-theme="paper"] .msg-meta .author { font-weight: 500; font-size: 13px; }
+html[data-theme="paper"] .tag,
+html[data-theme="paper"] .tag.urgent {
+  background: none;
+  border: var(--bw) solid var(--line-strong);
+  border-radius: 4px;
+  font-weight: 500;
+  color: var(--muted);
+}
+html[data-theme="paper"] .tag.urgent { color: var(--warn-ink); border-color: var(--warn-line); }
+html[data-theme="paper"] .bubble { border-radius: 12px; box-shadow: none; }
+html[data-theme="paper"] .msg.mine .bubble {
+  background: var(--card);
+  border: var(--bw) solid var(--line-strong);
+  border-top-right-radius: 4px;
+}
+html[data-theme="paper"] .msg.theirs .bubble {
+  background: var(--card);
+  border: var(--bw) solid var(--line);
+  border-top-left-radius: 4px;
+}
+html[data-theme="paper"] .plain-line { background: none; color: var(--faint); border-radius: 0; padding: 0; }
+html[data-theme="paper"] .plain-line::before,
+html[data-theme="paper"] .plain-line::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+html[data-theme="paper"] .msg.mine .mention-pill { background: var(--brand-tint); color: var(--brand-ink-strong); }
+
+/* 输入区：一张纸，唯一的朱砂按钮是“发送” */
+html[data-theme="paper"] .composer-card {
+  background: var(--card);
+  border: var(--bw) solid var(--line-strong);
+  border-radius: 12px;
+  box-shadow: none;
+}
+html[data-theme="paper"] .composer textarea,
+html[data-theme="paper"] .composer .composer-input textarea { background: transparent; }
+html[data-theme="paper"] .composer-card:focus-within {
+  border-color: rgba(179, 64, 47, 0.4);
+  box-shadow: 0 0 0 3px rgba(179, 64, 47, 0.1);
+}
+html[data-theme="paper"] .composer button.tool-btn { font-weight: 400; border-radius: 6px; }
+html[data-theme="paper"] .composer button.tool-btn.on,
+html[data-theme="paper"] .composer button.tool-btn.on:hover {
+  background: var(--warn-bg);
+  border-color: var(--warn-line);
+  color: var(--warn-ink);
+}
+html[data-theme="paper"] .composer .send-btn,
+html[data-theme="paper"] .composer .send-btn:hover:not(:disabled) {
+  background: var(--btn-brand);
+  border-color: var(--btn-brand);
+  color: var(--on-brand);
+  border-radius: 8px;
+  font-weight: 500;
+}
+html[data-theme="paper"] .composer .send-btn:hover:not(:disabled) { background: var(--brand-ink); }
+html[data-theme="paper"] .composer .send-btn.urgent,
+html[data-theme="paper"] .composer .send-btn.urgent:hover:not(:disabled) {
+  background: var(--warn-1);
+  border-color: var(--warn-1);
+  color: var(--on-brand);
+}
+html[data-theme="paper"] .composer .send-btn:disabled {
+  background: var(--soft-2);
+  border-color: var(--soft-2);
+  color: var(--faint-2);
+}
+html[data-theme="paper"] .mention-chip {
+  border-radius: 4px;
+  background: var(--brand-tint);
+  border-color: var(--brand-line);
+}
+html[data-theme="paper"] .tpl-pop,
+html[data-theme="paper"] .mention-menu { border-radius: 10px; box-shadow: var(--shadow-2); }
+html[data-theme="paper"] .tpl-item.on,
+html[data-theme="paper"] .mention-item.active { color: var(--brand-ink); background: var(--brand-tint); }
+html[data-theme="paper"] .bubble .question-box .q-opt { border-radius: 8px; }
+html[data-theme="paper"] .bubble .question-box .q-opt.rec { border-color: var(--ok-ink-2); }
+/* 分节标签：小号、窄距，不再全大写拉宽 */
+html[data-theme="paper"] .side-section {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 11.5px;
+  color: var(--side-muted);
+  padding: 6px 22px 4px;
+}
+/* 等宽数字，所有计数与时间对齐 */
+html[data-theme="paper"] .badge,
+html[data-theme="paper"] .msg-meta .seq,
+html[data-theme="paper"] .msg-meta .time,
+html[data-theme="paper"] .chat-id,
+html[data-theme="paper"] .pair-code {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 文档页：标题即内容，去掉渐变下划线与彩色底 */
+html[data-theme="paper"] .doc-title { font-size: 26px; font-weight: 600; }
+html[data-theme="paper"] .doc-title::after { display: none; }
+html[data-theme="paper"] .doc-inner h2 { font-size: 18px; font-weight: 600; }
+html[data-theme="paper"] .guide-tab { font-weight: 400; border-radius: 0; }
+html[data-theme="paper"] .guide-tab:hover { background: none; color: var(--ink); }
+html[data-theme="paper"] .guide-tab.active { color: var(--ink); border-bottom-color: var(--accent); }
+html[data-theme="paper"] .resource-panel {
+  background: var(--card);
+  border-color: var(--line-strong);
+  box-shadow: none;
+}
+html[data-theme="paper"] .resource-badge {
+  background: none;
+  color: var(--brand-ink);
+  padding: 0;
+  font-weight: 500;
+  font-size: 12px;
+  border-radius: 0;
+  letter-spacing: 0;
+}
+html[data-theme="paper"] .resource-chip {
+  border-radius: 4px;
+  background: var(--soft);
+  border-color: var(--line-strong);
+  color: var(--ink-2);
+  font-weight: 400;
+}
+html[data-theme="paper"] .resource-chip strong { color: var(--ink); font-weight: 600; }
+html[data-theme="paper"] .resource-card { box-shadow: none; border-radius: 10px; }
+html[data-theme="paper"] .resource-card h3 { font-weight: 600; }
+html[data-theme="paper"] .resource-card h3::before,
+html[data-theme="paper"] .resource-card h3::before, html[data-theme="paper"] .resource-card:nth-child(2) h3::before { background: var(--accent); box-shadow: none; width: 6px; height: 6px; }
+html[data-theme="paper"] .guide-step { box-shadow: none; }
+html[data-theme="paper"] .guide-step:hover { box-shadow: none; transform: none; border-color: var(--line-strong); }
+
+/* 登录：纸上一张卡片，没有背景光斑 */
+html[data-theme="paper"] .login-screen { background: var(--bg); }
+html[data-theme="paper"] .login-screen.center { width: 100vw; height: 100vh; }
+html[data-theme="paper"] .login-card {
+  border-radius: 14px;
+  padding: 32px 32px 28px;
+  border-color: var(--line-strong);
+  box-shadow: none;
+}
+html[data-theme="paper"] .login-card h1 { font-size: 26px; font-weight: 600; text-align: left; }
+html[data-theme="paper"] .login-logo { justify-content: flex-start; }
+html[data-theme="paper"] .login-logo .logo {
+  background: var(--ink);
+  border-radius: 8px;
+  box-shadow: none;
+  font-family: var(--font-display);
+}
+html[data-theme="paper"] .login-card .muted { text-align: left; }
+html[data-theme="paper"] .login-card button:not(.login-guide-btn):not(.login-alt-link) {
+  background: var(--btn-brand);
+  color: var(--on-brand);
+  border-radius: 8px;
+  font-weight: 500;
+  box-shadow: none;
+  transition: background 0.15s;
+}
+html[data-theme="paper"] .login-card button:not(.login-guide-btn):not(.login-alt-link):hover:not(:disabled) {
+  filter: none;
+  background: var(--brand-ink);
+}
+html[data-theme="paper"] .login-card button:not(.login-guide-btn):not(.login-alt-link):disabled {
+  background: var(--soft-2);
+  color: var(--faint-2);
+}
+html[data-theme="paper"] .login-card button.login-alt-link { color: var(--brand-ink); font-weight: 400; }
+html[data-theme="paper"] .login-card button.login-guide-btn { border-radius: 8px; }
+html[data-theme="paper"] .login-alt-col { align-self: flex-start; align-items: flex-start; }
+
+/* 其余页面共用的圆润/发光元素统一收紧 */
+html[data-theme="paper"] .theme-card { border-radius: 10px; }
+html[data-theme="paper"] .modal-card { border-radius: 14px; box-shadow: var(--shadow-2); }
+html[data-theme="paper"] .frequency-opt,
+html[data-theme="paper"] .pair-status,
+html[data-theme="paper"] .mentioned-chip { border-radius: 4px; }
+
+/* 消息头：作者名、序号、时间在同一中线上 */
+html[data-theme="paper"] .msg-meta { line-height: 1.4; }
