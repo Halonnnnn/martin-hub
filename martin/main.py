@@ -12,7 +12,7 @@ from .db import create_schema_and_tables, make_engine, make_sessionmaker
 from .deps import make_admin_signer, make_session_signer
 from .dispatch import Dispatcher
 from .errors import AppError
-from .routers import admin, friends, groups, messages, pair, wake, web
+from .routers import admin, friends, groups, messages, pair, temp, wake, web
 from .wake_bus import WakeBus
 
 API_PREFIX = "/api/v1"
@@ -27,6 +27,7 @@ ENDPOINTS = {
     "admin": "POST /admin/login | POST /admin/logout | GET /admin/me | GET /admin/users | POST /admin/users | POST /admin/users/{id}/password | POST /admin/users/{id}/disable | POST /admin/users/{id}/enable | POST /admin/users/{id}/revoke-tokens | GET /admin/stats",
     "friends": "GET /friends | POST /friends | GET /friends/requests | POST /friends/requests/{id} | DELETE /friends/{memberId} | POST /chats",
     "wake": "GET /wake | PUT /wake | DELETE /wake | POST /wake/test | GET /wake/events (SSE) | POST/DELETE /wake/lease",
+    "temp": "POST /web/agents/{id}/temp-grants | GET /web/temp-grants | GET /web/temp-grants/{id} | DELETE /web/temp-grants/{id} | GET /web/temp-grants/{id}/messages | POST /temp/redeem | GET /temp/session | GET/POST /temp/messages | POST /temp/close",
     "schema": 1,
 }
 
@@ -88,6 +89,7 @@ def create_app(
     app.include_router(admin.router, prefix=API_PREFIX)
     app.include_router(friends.router, prefix=API_PREFIX)
     app.include_router(wake.router, prefix=API_PREFIX)
+    app.include_router(temp.router, prefix=API_PREFIX)
 
     @app.exception_handler(Exception)
     async def unhandled(request: Request, exc: Exception):

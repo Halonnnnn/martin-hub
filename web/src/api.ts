@@ -27,6 +27,32 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T;
 }
 
+/** 访客请求：不带 cookie，只带临时 token。 */
+async function tempRequest<T>(
+  path: string,
+  token: string | null,
+  init?: RequestInit,
+): Promise<T> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const resp = await fetch(BASE + path, {
+    credentials: "omit",
+    headers,
+    ...init,
+  });
+  const body = await resp.json().catch(() => ({}));
+  if (!resp.ok) {
+    throw new ApiError(
+      body?.error?.code ?? "http_error",
+      body?.error?.message ?? resp.statusText,
+      resp.status,
+    );
+  }
+  return body as T;
+}
+
 export interface WebMe {
   owner: {
     id: number;
@@ -44,6 +70,7 @@ export interface WebMember {
   human: boolean;
   yourOwner?: boolean;
   ownerId?: number | null;
+  guest?: boolean;
   label?: string;
   intro?: string;
   reach?: string;
@@ -113,10 +140,70 @@ export interface WebMessage {
   text: string | null;
   recalled: boolean;
   createdAt: string;
-  author: { id: string; name: string; human: boolean; yourOwner?: boolean };
+  author: {
+    id: string;
+    name: string;
+    human: boolean;
+    guest?: boolean;
+    label?: string;
+    yourOwner?: boolean;
+  };
   replyToSeq?: number | null;
   priority?: string;
   question?: WebQuestion | null;
+}
+
+export type TempGrantStatus =
+  | "unredeemed"
+  | "active"
+  | "exhausted"
+  | "expired"
+  | "revoked"
+  | "closed";
+
+export interface WebTempGrant {
+  id: string;
+  agent: { id: string; name: string } | null;
+  label: string | null;
+  status: TempGrantStatus;
+  /** 服务器当前时间（ISO）：浏览器用它纠正本机时钟偏差 */
+  serverNow: string;
+  accessMinutes: number;
+  maxAccessMinutes: number;
+  maxAccessAt: string;
+  maxRemainingSeconds: number;
+  canRenew: boolean;
+  maxMessages: number;
+  messagesUsed: number;
+  remainingSeconds: number;
+  remainingMessages: number;
+  createdAt: string;
+  expiresAt: string;
+  redeemedAt: string | null;
+  closedAt: string | null;
+  closeReason: string | null;
+  hasTranscript: boolean;
+}
+
+export interface WebTempGrantCreated extends WebTempGrant {
+  code: string;
+  shareText: string;
+}
+
+export interface WebTempState {
+  grantId: string;
+  groupId: string;
+  agent: { id: string; name: string; reach?: string };
+  status: TempGrantStatus;
+  /** 服务器当前时间（ISO）：浏览器用它纠正本机时钟偏差 */
+  serverNow: string;
+  expiresAt: string;
+  maxAccessAt: string;
+  remainingSeconds: number;
+  maxMessages: number;
+  messagesUsed: number;
+  remainingMessages: number;
+  closeReason?: string | null;
 }
 
 export interface PushDegraded {
@@ -275,6 +362,39 @@ export const api = {
     }),
   deleteFriend: (id: string) =>
     request<{ ok: boolean }>(`/web/friends/${id}`, { method: "DELETE" }),
+  tempGrants: (agentId?: string) =>
+    request<{ grants: WebTempGrant[] }>(
+      `/web/temp-grants${agentId ? `?agentId=${encodeURIComponent(agentId)}` : ""}`,
+    ),
+  createTempGrant: (
+    agentId: string,
+    body: {
+      accessMinutes: number;
+      maxAccessMinutes: number;
+      maxMessages: number;
+      label?: string;
+    },
+  ) =>
+    request<{ grant: WebTempGrantCreated }>(
+      `/web/agents/${encodeURIComponent(agentId)}/temp-grants`,
+      { method: "POST", body: JSON.stringify(body) },
+    ),
+  renewTempGrant: (id: string) =>
+    request<{ grant: WebTempGrantCreated }>(
+      `/web/temp-grants/${encodeURIComponent(id)}/renew`,
+      { method: "POST" },
+    ),
+  revokeTempGrant: (id: string) =>
+    request<{ ok: boolean; status: string }>(
+      `/web/temp-grants/${encodeURIComponent(id)}`,
+      { method: "DELETE" },
+    ),
+  tempTranscript: (id: string, before?: number) =>
+    request<{ messages: WebMessage[] }>(
+      `/web/temp-grants/${encodeURIComponent(id)}/messages${
+        before ? `?before=${before}` : ""
+      }`,
+    ),
   setupStatus: () => request<SetupStatus>("/web/setup-status"),
   register: (username: string, password: string) =>
     request<{ ok: boolean; pending: boolean; message: string }>("/web/register", {
@@ -302,6 +422,37 @@ export const api = {
     request<{ revoked: boolean }>(`/web/pairing-codes/${id}`, {
       method: "DELETE",
     }),
+};
+
+export const tempApi = {
+  redeem: (sessionId: string, code: string, label?: string) =>
+    tempRequest<{
+      sessionToken: string;
+      temp: WebTempState;
+      messages: WebMessage[];
+    }>("/temp/redeem", null, {
+      method: "POST",
+      body: JSON.stringify({
+        sessionId,
+        code,
+        ...(label ? { label } : {}),
+      }),
+    }),
+  session: (token: string) =>
+    tempRequest<{ temp: WebTempState }>("/temp/session", token),
+  messages: (token: string, after: number) =>
+    tempRequest<{ messages: WebMessage[]; cursor: number }>(
+      `/temp/messages?after=${after}`,
+      token,
+    ),
+  send: (token: string, text: string, opKey: string) =>
+    tempRequest<{ seq: number; remainingMessages: number; status: TempGrantStatus }>(
+      "/temp/messages",
+      token,
+      { method: "POST", body: JSON.stringify({ text, opKey }) },
+    ),
+  close: (token: string) =>
+    tempRequest<{ closed: boolean }>("/temp/close", token, { method: "POST" }),
 };
 
 export const adminApi = {

@@ -1,4 +1,5 @@
 import datetime as dt
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy import (
     BigInteger,
@@ -15,8 +16,10 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.types import TypeDecorator
 
 from .config import get_settings
+from .timeutil import now_utc
 from .security import gen_public_id
 
 settings = get_settings()
@@ -32,8 +35,46 @@ class Base(DeclarativeBase):
     pass
 
 
+def _localtz(name: str) -> dt.tzinfo:
+    try:
+        return ZoneInfo(name)
+    except (ZoneInfoNotFoundError, ValueError):
+        return dt.timezone.utc
+
+
+class AwareDateTime(TypeDecorator):
+    """时区安全的时间列：读回来一定带 tzinfo，任何比较都是同一时间基准。
+
+    - TIMESTAMPTZ 正常返回 aware 值，归一到 UTC 直接用；
+    - `timestamp without time zone`（老库/手工建表/换过驱动）返回 naive 值，
+      和 aware 的 now 直接比较会抛 TypeError。这里不盲目按 UTC 解释：
+      Postgres 的 `timestamp` 列存的是会话时区下的**本地墙钟**，按 UTC 硬读
+      会整整偏一个时区（UTC+8 就是「刚进来就到期」）；所以按 `localtime_zone`
+      解释 naive 值，再统一转 UTC。
+    """
+
+    impl = DateTime(timezone=True)
+    cache_ok = False  # 实例带着 localtime_zone，缓存键要区分
+
+    def __init__(self, localtime_zone: str = "UTC", **kwargs):
+        super().__init__(**kwargs)
+        self.localtime_zone = localtime_zone
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return None
+        if value.tzinfo is None:
+            return value.replace(tzinfo=_localtz(self.localtime_zone)).astimezone(
+                dt.timezone.utc
+            )
+        return value.astimezone(dt.timezone.utc)
+
+
 def _ts() -> Mapped[dt.datetime]:
-    return mapped_column(DateTime(timezone=True), server_default=func.now())
+    # 应用侧写 UTC；不用 server_default=now()：会话时区不同会写入本地墙钟
+    return mapped_column(
+        DateTime(timezone=True), default=now_utc, server_default=func.now()
+    )
 
 
 class Owner(Base):
@@ -147,6 +188,52 @@ class GroupMember(Base):
     last_read_seq: Mapped[int] = mapped_column(BigInteger, default=0)
     told_owner_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
     removed_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class TempGrant(Base):
+    """一次性临时授权：一码 = 一次核销 = 一个临时会话。
+
+    访客在会话内是 owner 的临时授权人；不新增 responder/scoped token，
+    agent 用现有 Member token 正常收发，服务端只限制范围。
+    """
+
+    __tablename__ = "temp_grants"
+    __table_args__ = (
+        Index("ix_temp_grants_owner_created", "owner_id", "created_at"),
+        Index("ix_temp_grants_agent", "agent_member_id"),
+        Index("ix_temp_grants_expires", "expires_at"),
+        Index("ix_temp_grants_max_access", "max_access_at"),
+        {"schema": SCHEMA},
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    public_id: Mapped[str] = mapped_column(
+        String(16), unique=True, default=lambda: gen_public_id("tg")
+    )
+    owner_id: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.owners.id"))
+    agent_member_id: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.members.id"))
+    label: Mapped[str | None] = mapped_column(String(20))
+    code_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    access_seconds: Mapped[int] = mapped_column(Integer)
+    max_access_seconds: Mapped[int] = mapped_column(Integer)
+    max_access_at: Mapped[dt.datetime] = mapped_column(AwareDateTime)
+    max_messages: Mapped[int] = mapped_column(Integer)
+    messages_used: Mapped[int] = mapped_column(
+        Integer, default=0, server_default=text("0")
+    )
+    expires_at: Mapped[dt.datetime] = mapped_column(AwareDateTime)
+    session_token_hash: Mapped[str | None] = mapped_column(String(64), unique=True)
+    group_id: Mapped[int | None] = mapped_column(ForeignKey(f"{SCHEMA}.groups.id"))
+    guest_member_id: Mapped[int | None] = mapped_column(ForeignKey(f"{SCHEMA}.members.id"))
+    redeemed_at: Mapped[dt.datetime | None] = mapped_column(AwareDateTime)
+    redeemed_ip: Mapped[str | None] = mapped_column(String(64))
+    last_seen_at: Mapped[dt.datetime | None] = mapped_column(AwareDateTime)
+    revoked_at: Mapped[dt.datetime | None] = mapped_column(AwareDateTime)
+    closed_at: Mapped[dt.datetime | None] = mapped_column(AwareDateTime)
+    close_reason: Mapped[str | None] = mapped_column(String(20))
+    created_at: Mapped[dt.datetime] = mapped_column(  # 迁移 0013 给的是 now()
+        AwareDateTime, default=now_utc, server_default=func.now()
+    )
 
 
 class Message(Base):

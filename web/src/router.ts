@@ -26,6 +26,7 @@ export type RouteName =
   | "agents"
   | "account"
   | "guide"
+  | "temp"
   | "login"
   | "admin"
   | "setup"
@@ -37,6 +38,8 @@ export interface Route {
   groupId?: string;
   /** 仅 /join/<code>：邀请码 */
   code?: string;
+  /** 仅 /t/<id>：临时会话的公开 id */
+  sessionId?: string;
 }
 
 const SIMPLE_ROUTES: Record<string, RouteName> = {
@@ -46,6 +49,7 @@ const SIMPLE_ROUTES: Record<string, RouteName> = {
   "/account": "account",
   "/info": "account", // 别名：账号信息
   "/guide": "guide",
+  "/t": "temp",
   "/page": "guide", // 别名：公开说明页
   "/login": "login",
   "/admin": "admin",
@@ -73,6 +77,9 @@ export function parseRoute(pathname: string): Route {
   const join = /^\/join\/([^/]+)$/.exec(path);
   if (join) return { name: "join", code: safeDecode(join[1]) };
 
+  const temp = /^\/t\/([^/]+)$/.exec(path);
+  if (temp) return { name: "temp", sessionId: safeDecode(temp[1]) };
+
   const chat = /^\/chat\/([^/]+)$/.exec(path);
   if (chat) return { name: "chat", groupId: safeDecode(chat[1]) };
 
@@ -99,6 +106,10 @@ export function routePath(route: Route): string {
       return "/account";
     case "guide":
       return "/guide";
+    case "temp":
+      return route.sessionId
+        ? `/t/${encodeURIComponent(route.sessionId)}`
+        : "/t";
     case "login":
       return "/login";
     case "admin":

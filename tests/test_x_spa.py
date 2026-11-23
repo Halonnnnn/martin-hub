@@ -31,7 +31,7 @@ async def test_spa_deep_links_fall_back_to_index(tmp_path):
     )
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        for path in ("/", "/info", "/page", "/friends", "/chat/gABC123", "/join/XYZ123"):
+        for path in ("/", "/info", "/page", "/friends", "/chat/gABC123", "/join/XYZ123", "/t", "/t/tg_test123"):
             r = await client.get(path)
             assert r.status_code == 200, path
             assert "spa-index" in r.text, path

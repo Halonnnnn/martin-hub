@@ -14,9 +14,15 @@ log = logging.getLogger(__name__)
 BATCH_SIZE = 50
 
 
-def wake_payload(row: WakeQueue, group_public_id: str | None) -> dict:
-    """推送载荷只带定位信息，不含消息正文与凭证。"""
-    return {
+def wake_payload(
+    row: WakeQueue,
+    group_public_id: str | None,
+    *,
+    group_kind: str | None = None,
+    policy: str | None = None,
+) -> dict:
+    """推送载荷只带定位信息与全局策略，不含消息正文与凭证。"""
+    data = {
         "schema": 1,
         "kind": "wake",
         "groupId": group_public_id,
@@ -24,6 +30,10 @@ def wake_payload(row: WakeQueue, group_public_id: str | None) -> dict:
         "urgent": bool(row.urgent),
         "at": row.created_at.isoformat() if row.created_at else None,
     }
+    if group_kind == "temp":
+        data["groupKind"] = "temp"
+        data["policy"] = policy or ""
+    return data
 
 
 def _now() -> dt.datetime:
@@ -140,7 +150,7 @@ class Dispatcher:
             return
 
         if not row.urgent:
-            if row.reason != "owner_post":
+            if row.reason not in ("owner_post", "guest_post"):
                 dedup_key = f"martin:wake:dedup:{row.group_id}:{row.member_id}"
                 if not await self.cache.set_if_absent(
                     dedup_key, "1", self.settings.wake_dedup_seconds
@@ -174,7 +184,12 @@ class Dispatcher:
         headers = {"Authorization": f"Bearer {secret}"} if secret else {}
         ok = False
         group = await db.get(Group, row.group_id)
-        payload = wake_payload(row, group.public_id if group is not None else None)
+        payload = wake_payload(
+            row,
+            group.public_id if group is not None else None,
+            group_kind=group.kind if group is not None else None,
+            policy=self.settings.temp_guest_policy,
+        )
         try:
             async with httpx.AsyncClient(
                 timeout=self.settings.webhook_timeout_seconds, trust_env=False

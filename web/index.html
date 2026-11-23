@@ -9,11 +9,11 @@
       try {
         var t = localStorage.getItem("martin.ui_theme");
         document.documentElement.dataset.theme =
-          t === "classic" || t === "warm" || t === "dark" || t === "glass" || t === "brutal"
+          t === "paper" || t === "classic" || t === "warm" || t === "dark" || t === "brutal"
             ? t
-            : "glass";
+            : "paper";
       } catch (e) {
-        document.documentElement.dataset.theme = "glass";
+        document.documentElement.dataset.theme = "paper";
       }
     </script>
   </head>

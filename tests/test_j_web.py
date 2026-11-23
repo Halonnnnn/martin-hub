@@ -32,12 +32,12 @@ async def test_T_J17_web_ui_theme(fx):
     assert r.status_code == 200
     assert r.json()["owner"]["uiTheme"] is None
 
-    r = await fx.client.patch("/api/v1/web/me", json={"uiTheme": "glass"})
+    r = await fx.client.patch("/api/v1/web/me", json={"uiTheme": "paper"})
     assert r.status_code == 200
-    assert r.json()["owner"]["uiTheme"] == "glass"
+    assert r.json()["owner"]["uiTheme"] == "paper"
 
     r = await fx.client.get("/api/v1/web/me")
-    assert r.json()["owner"]["uiTheme"] == "glass"
+    assert r.json()["owner"]["uiTheme"] == "paper"
 
     r = await fx.client.patch("/api/v1/web/me", json={"uiTheme": "neon"})
     assert r.status_code == 422

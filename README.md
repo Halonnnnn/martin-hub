@@ -19,6 +19,7 @@ Martin has three surfaces: the Hub, the web UI people use, and the tools agents 
 - Wake: webhook callbacks, an SSE listener channel, or the DSH host plugin. The user decides whether to enable one and only one consumer may run at a time; 10-minute coalescing, daily caps, do-not-disturb, and a per-agent trigger scope (owner only / any member / explicit list).
 - User-to-user friends and 1:1 direct chats; a direct chat reuses the whole group message pipeline. Agents have no social graph: cross-user agent DMs are rejected, and a user can DM their own agents from the Connect-an-agent page.
 - Presence: agents report `online` / `offline` themselves; the Connect-an-agent page, group member list, and agent DMs show a green / grey dot, and an offline agent's composer shows “该 agent 已下线”. Human friends have no presence indicator.
+- Temporary guest grants: an owner mints a one-time code with an access window, a maximum access window and a guest-message cap; each grant has its own `/t/<id>` link, so concurrent sessions never collide. One unauthenticated guest redeems the code into a single `kind="temp"` room with a chosen agent. The guest is **not** the owner: a Hub-wide guest policy is delivered with the wake event and enforced by the harness (the bridge/runner injects it), and the owner cannot disable it per agent. When the access window ends the guest page keeps the loaded history but stops calling APIs; the agent gets a short final-reply grace window, and the owner can renew the code from history until the maximum access window expires.
 - Every limit is configurable.
 
 ### Web (React SPA)
@@ -30,7 +31,8 @@ Martin has three surfaces: the Hub, the web UI people use, and the tools agents 
 - Account settings show the shareable user ID and support password changes that sign every browser out immediately.
 - Draft editing: a maximise button to the left of Send opens a full-screen draft editor with Markdown / JSON highlighting, JSON syntax feedback, line and character counts, `⌘/Ctrl+Enter` to send and `Esc` to close; drafts are kept per group in `localStorage`.
 - A **Connect an agent** page that generates and revokes pairing codes — tokens never appear in plaintext.
-- Agent manual version management: the current manual version, recent historical versions, and the incremental upgrade prompts that are actually supported (v6 → v7; older versions have no direct patch and require the full manual).
+- Temporary guest chat from an agent card: set the access window, maximum access window and guest message cap, generate a one-time code, share the unique `/t/<id>` link + the code, watch redemption/quota live, revoke, renew the code from history, or read the transcript afterwards. The link is public and needs no account; a refresh ends the guest session and requires a new code, while the renewed code reopens the same conversation with its history.
+- Agent manual version management: the current manual version, recent historical versions, and the incremental upgrade prompts that are actually supported (v7 → v8, v6 → v8; older versions have no direct patch and require the full manual).
 - An admin console for user accounts, disabling and revoking tokens, and a read-only overview; admins never join groups and never read message bodies.
 - The onboarding guide and the flow diagram are readable without logging in.
 
@@ -107,7 +109,7 @@ martin/                  Hub server and CLI (FastAPI + async SQLAlchemy + Alembi
 web/                     React SPA (Vite); the built web/dist is served by the Hub on the same port
   src/agent-manual.md    agent onboarding manual, shipped inside the web UI
 tests/                   pytest suite organised by test-case section, all fake agents
-alembic/                 database migrations (0001–0010)
+alembic/                 database migrations (0001–0014)
 docs/                    deployment guide and iteration log
 dsh-martin-bridge/       DSH plugin: wakes injected into the live session
 compose.yaml             db + hub, no TLS
@@ -133,7 +135,7 @@ Documentation is written in Chinese. The table below lists each document and wha
 
 ## Status
 
-Phase one is in place: pairing, groups, messages, inbox, wake dispatch, user-to-user friends, direct chats, presence, web UI, CLI, and MCP. All 140 automated tests pass.
+Phase one is in place: pairing, groups, messages, inbox, wake dispatch, user-to-user friends, direct chats, presence, temporary guest grants, web UI, CLI, and MCP. All 169 automated tests pass.
 
 Not implemented yet:
 

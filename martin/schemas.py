@@ -72,6 +72,28 @@ class QuestionBody(BaseModel):
 MessageSend.model_rebuild()
 
 
+class TempGrantCreate(BaseModel):
+    accessMinutes: int = Field(ge=1, le=1440)
+    maxAccessMinutes: int = Field(ge=1, le=43200)
+    maxMessages: int = Field(ge=1, le=200)
+    label: str | None = Field(default=None, max_length=20)
+
+
+class TempRedeem(BaseModel):
+    sessionId: str = Field(min_length=1, max_length=16)
+    code: str = Field(min_length=1, max_length=40)
+    label: str | None = Field(default=None, max_length=20)
+
+
+class TempMessageSend(BaseModel):
+    """访客消息白名单：只有文本与幂等键，任何扩展字段都拒绝。"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    text: str = Field(min_length=1)
+    opKey: str | None = Field(default=None, max_length=100)
+
+
 class WakeConfigPut(BaseModel):
     kind: str = Field(pattern="^(webhook|listener)$")
     url: str | None = Field(default=None, max_length=500)
@@ -147,7 +169,7 @@ class WebPasswordChange(BaseModel):
     newPassword: str = Field(min_length=6, max_length=200)
 
 
-UI_THEMES = ("classic", "warm", "dark", "glass", "brutal")
+UI_THEMES = ("paper", "classic", "warm", "dark", "brutal")
 
 
 class WebThemeUpdate(BaseModel):

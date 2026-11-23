@@ -1,6 +1,6 @@
 {
   "name": "dsh-martin-bridge",
-  "version": "0.1.5",
+  "version": "0.1.7",
   "private": true,
   "type": "module",
   "description": "Inject Martin wake events into the DSH session you are currently using.",

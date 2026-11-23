@@ -33,24 +33,25 @@ function langExtension(lang: DraftLang): Extension {
   return lang === "json" ? json() : markdown();
 }
 
+// 编辑器配色跟随主题 token，不写死颜色；CodeMirror 的 theme 支持 CSS 变量
 const editorTheme = EditorView.theme({
-  "&": { height: "100%", fontSize: "13.5px", background: "#fff", color: "#171a21" },
+  "&": { height: "100%", fontSize: "13.5px", background: "var(--card)", color: "var(--ink)" },
   ".cm-scroller": {
     fontFamily: 'ui-monospace, "SF Mono", Menlo, Consolas, monospace',
     lineHeight: "1.65",
   },
-  ".cm-content": { padding: "14px 0", caretColor: "#6366f1" },
+  ".cm-content": { padding: "14px 0", caretColor: "var(--brand-1)" },
   ".cm-gutters": {
-    background: "#f7f8fc",
-    color: "#b3b9c9",
+    background: "var(--inset)",
+    color: "var(--faint-2)",
     border: "none",
-    borderRight: "1px solid #e7e9f2",
+    borderRight: "var(--bw) solid var(--line)",
   },
-  ".cm-activeLine": { background: "rgba(99, 102, 241, 0.05)" },
-  ".cm-activeLineGutter": { background: "rgba(99, 102, 241, 0.08)" },
+  ".cm-activeLine": { background: "rgba(var(--brand-rgb), 0.05)" },
+  ".cm-activeLineGutter": { background: "rgba(var(--brand-rgb), 0.08)" },
   "&.cm-focused": { outline: "none" },
   ".cm-selectionBackground, &.cm-focused .cm-selectionBackground": {
-    background: "rgba(99, 102, 241, 0.18)",
+    background: "rgba(var(--brand-rgb), 0.18)",
   },
 });
 

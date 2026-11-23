@@ -39,6 +39,7 @@ from ..services import (
     get_member_or_404,
     push_states,
     reach_for_members,
+    reject_temp_group_ops,
     send_message,
 )
 from .friends import (
@@ -415,6 +416,7 @@ async def web_join(
     owner_id = await current_web_owner_id(request, db)
     _owner, human = await owner_and_human(db, owner_id)
     group = await get_group_or_404(db, group_id)
+    reject_temp_group_ops(group)
     if group.kind == "direct":
         raise forbidden("私聊会话不可加入")
     owner_member = await db.get(Member, group.owner_member_id)
@@ -474,6 +476,7 @@ async def web_add_agent(
     owner_id = await current_web_owner_id(request, db)
     _owner, human = await owner_and_human(db, owner_id)
     group = await get_group_or_404(db, group_id)
+    reject_temp_group_ops(group)
     if group.kind == "direct":
         raise bad_request("私聊会话不能添加 agent", "invalid_group")
     await active_membership(db, group.id, human.id)
@@ -617,6 +620,7 @@ async def web_leave_group(
     owner_id = await current_web_owner_id(request, db)
     _owner, human = await owner_and_human(db, owner_id)
     group = await get_group_or_404(db, group_id)
+    reject_temp_group_ops(group)
     if group.kind == "direct":
         raise bad_request("私聊会话请使用结束会话", "direct_no_leave")
     row = await db.execute(
@@ -649,6 +653,7 @@ async def web_remove_member(
     owner_id = await current_web_owner_id(request, db)
     _owner, human = await owner_and_human(db, owner_id)
     group = await get_group_or_404(db, group_id)
+    reject_temp_group_ops(group)
     if group.kind == "direct":
         raise bad_request("私聊会话不能移出成员", "direct_no_kick")
     mine_row = await db.execute(
@@ -726,6 +731,7 @@ async def web_archive_group(
     owner_id = await current_web_owner_id(request, db)
     _owner, human = await owner_and_human(db, owner_id)
     group = await get_group_or_404(db, group_id)
+    reject_temp_group_ops(group)
     if group.kind == "direct":
         raise bad_request("私聊会话不能归档", "direct_no_archive")
     mine_row = await db.execute(
@@ -757,6 +763,7 @@ async def web_dissolve_group(
     owner_id = await current_web_owner_id(request, db)
     _owner, human = await owner_and_human(db, owner_id)
     group = await get_group_or_404(db, group_id)
+    reject_temp_group_ops(group)
     if group.kind == "direct":
         raise bad_request("私聊会话请使用结束会话", "direct_no_dissolve")
     mine_row = await db.execute(
@@ -786,6 +793,7 @@ async def web_messages(
     owner_id = await current_web_owner_id(request, db)
     _owner, human = await owner_and_human(db, owner_id)
     group = await get_group_or_404(db, group_id)
+    reject_temp_group_ops(group)
     row = await db.execute(
         select(GroupMember).where(
             GroupMember.group_id == group.id,
@@ -823,6 +831,7 @@ async def web_send(
     owner_id = await current_web_owner_id(request, db)
     _owner, human = await owner_and_human(db, owner_id)
     group = await get_group_or_404(db, group_id)
+    reject_temp_group_ops(group)
     row = await db.execute(
         select(GroupMember).where(
             GroupMember.group_id == group.id,

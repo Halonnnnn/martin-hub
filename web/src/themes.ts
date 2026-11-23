@@ -1,10 +1,10 @@
-export type UiTheme = "classic" | "warm" | "dark" | "glass" | "brutal";
+export type UiTheme = "paper" | "classic" | "warm" | "dark" | "brutal";
 
 export const UI_THEMES: { id: UiTheme; name: string; desc: string }[] = [
-  { id: "glass", name: "极光玻璃", desc: "默认 · 柔和渐变与磨砂面板" },
-  { id: "classic", name: "经典", desc: "靛蓝渐变 · 现有风格" },
-  { id: "warm", name: "暖调纸感", desc: "米白纸底 · 衬线标题" },
-  { id: "dark", name: "深色科技", desc: "近黑底 · 工程感" },
+  { id: "paper", name: "纸墨（默认）", desc: "米白纸底 · 朱砂一色 · 衬线标题" },
+  { id: "classic", name: "经典", desc: "靛蓝 · 冷灰底" },
+  { id: "warm", name: "暖调纸感", desc: "米白纸底 · 琥珀强调" },
+  { id: "dark", name: "深色", desc: "近黑底 · 工程感" },
   { id: "brutal", name: "新粗野", desc: "粗边框 · 硬阴影 · 高对比" },
 ];
 
@@ -24,7 +24,7 @@ export function localTheme(): UiTheme | null {
 }
 
 export function defaultTheme(): UiTheme {
-  return localTheme() ?? "glass";
+  return localTheme() ?? "paper";
 }
 
 export function setThemeDom(t: UiTheme) {

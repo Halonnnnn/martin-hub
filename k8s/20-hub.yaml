@@ -1,0 +1,90 @@
+# Martin Hub
+# 镜像由现有 Dockerfile 构建：docker build -t REGISTRY/martin-hub:TAG . && docker push ...
+# 说明：entrypoint.sh 启动时会执行 alembic upgrade head，
+# 因此这里用 Recreate 策略且副本数为 1，避免迁移并发冲突。
+# 之后如需水平扩容，建议把迁移拆成独立的 initContainer/Job（只跑一份）。
+apiVersion: v1
+kind: Secret
+metadata:
+  name: martin-hub
+  namespace: martin
+stringData:
+  MARTIN_SECRET_KEY: change-me-32-bytes-hex
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: martin-hub
+  namespace: martin
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: martin-hub
+  template:
+    metadata:
+      labels:
+        app: martin-hub
+    spec:
+      securityContext:
+        runAsNonRoot: true
+      containers:
+        - name: hub
+          image: martin-hub:local   # 改成你的 registry 镜像
+          ports:
+            - containerPort: 8000
+              name: http
+          env:
+            - name: MARTIN_DATABASE_URL
+              value: postgresql+asyncpg://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@martin-db:5432/$(POSTGRES_DB)
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef: { name: martin-db, key: POSTGRES_USER }
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: martin-db, key: POSTGRES_PASSWORD }
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef: { name: martin-db, key: POSTGRES_DB }
+            - name: MARTIN_SECRET_KEY
+              valueFrom:
+                secretKeyRef: { name: martin-hub, key: MARTIN_SECRET_KEY }
+          envFrom:
+            - configMapRef:
+                name: martin-env
+          readinessProbe:
+            httpGet:
+              path: /api/v1
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /api/v1
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: martin-hub
+  namespace: martin
+spec:
+  # 没有 Ingress 控制器时，可临时改为 NodePort 并指定 nodePort 对外
+  type: ClusterIP
+  selector:
+    app: martin-hub
+  ports:
+    - port: 80
+      targetPort: http

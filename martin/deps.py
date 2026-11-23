@@ -9,6 +9,7 @@ from .config import Settings
 from .errors import AppError, unauthorized
 from .models import Admin, Member, Owner, ReceiverLease
 from .security import sha256_hex
+from .timeutil import as_utc
 
 
 def make_session_signer(settings: Settings) -> URLSafeTimedSerializer:
@@ -70,7 +71,7 @@ async def check_fence(request: Request, db: AsyncSession, member: Member) -> Non
         return
     lease = await db.get(ReceiverLease, member.id)
     now = dt.datetime.now(dt.timezone.utc)
-    if lease is None or lease.fence != fence or lease.expires_at <= now:
+    if lease is None or lease.fence != fence or as_utc(lease.expires_at) <= now:
         raise AppError("lease_lost", "listener 租约已失效", 409)
 
 

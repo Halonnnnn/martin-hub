@@ -341,7 +341,7 @@ async def wake_events(request: Request):
         async with maker() as db:
             rows = (
                 await db.execute(
-                    select(WakeQueue, Group.public_id)
+                    select(WakeQueue, Group.public_id, Group.kind)
                     .join(Group, Group.id == WakeQueue.group_id)
                     .where(
                         WakeQueue.member_id == member_id,
@@ -352,7 +352,18 @@ async def wake_events(request: Request):
                     .limit(200)
                 )
             ).all()
-            return [(r.id, wake_payload(r, gpid)) for r, gpid in rows]
+            return [
+                (
+                    r.id,
+                    wake_payload(
+                        r,
+                        gpid,
+                        group_kind=gkind,
+                        policy=settings.temp_guest_policy,
+                    ),
+                )
+                for r, gpid, gkind in rows
+            ]
 
     async def is_muted() -> bool:
         async with maker() as db:
@@ -381,7 +392,7 @@ async def wake_events(request: Request):
                             await db.get(Group, row.group_id) if row is not None else None
                         )
                     if row is not None and row.member_id == member_id:
-                        yield f"id: {row.id}\nevent: wake\ndata: {json.dumps(wake_payload(row, group.public_id if group else None), ensure_ascii=False)}\n\n"
+                        yield f"id: {row.id}\nevent: wake\ndata: {json.dumps(wake_payload(row, group.public_id if group else None, group_kind=group.kind if group else None, policy=settings.temp_guest_policy), ensure_ascii=False)}\n\n"
                         sent = row.id
                 now = asyncio.get_running_loop().time()
                 if now - last_ping >= settings.sse_heartbeat_seconds:

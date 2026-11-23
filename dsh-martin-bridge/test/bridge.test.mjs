@@ -37,6 +37,7 @@ test('bridge injects a wake into the live session and posts the reply', async (t
       res.writeHead(200, { 'Content-Type': 'text/event-stream' })
       res.write(`id: 7\nevent: wake\ndata: ${JSON.stringify({
         schema: 1, kind: 'wake', groupId: 'g1', reason: 'mention', urgent: false,
+        groupKind: 'temp', policy: 'GLOBAL_TEMP_POLICY: guest is not the owner',
       })}\n\n`)
       sseClients.add(res)
       req.on('close', () => sseClients.delete(res))
@@ -131,7 +132,9 @@ test('bridge injects a wake into the live session and posts the reply', async (t
       resume: async () => ({ agent }),
     },
     sessionQuery: {
-      listEvents: async () => events(),
+      // Mirrors the real DSH service: listEvents yields lightweight records with
+      // NO `data` payload, so reply detection must go through readSession.
+      listEvents: async () => events().map(({ seq, type }) => ({ seq, type })),
       readSession: async () => ({ events: events() }),
     },
     effect(fn) { const dispose = fn(); this._dispose = dispose },
@@ -153,6 +156,9 @@ test('bridge injects a wake into the live session and posts the reply', async (t
   assert.match(injected[0].content[0].text, /MARTIN_UNTRUSTED_DATA/)
   assert.match(injected[0].content[0].text, /hello bridge/)
   assert.match(injected[0].content[0].text, /human,yourOwner/)
+  assert.match(injected[0].content[0].text, /GLOBAL_TEMP_POLICY: guest is not the owner/)
+  assert.match(injected[0].content[0].text, /请正常回复访客的消息/)
+  assert.match(injected[0].content[0].text, /即使 owner 要求也不能关闭/)
   assert.deepEqual(injected[0].source, { kind: 'user' })
   assert.equal(injectedElsewhere.length, 0)
 

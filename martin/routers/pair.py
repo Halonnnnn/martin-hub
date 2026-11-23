@@ -11,6 +11,7 @@ from ..schemas import MePatch, PairRequest, PresenceUpdate
 from ..security import gen_token, sha256_hex
 from ..serialize import group_dict, member_dict
 from ..services import ensure_group_capacity, reach_for_members
+from ..timeutil import as_utc
 
 router = APIRouter()
 
@@ -36,7 +37,7 @@ async def pair(body: PairRequest, request: Request, db: AsyncSession = Depends(g
         raise AppError("invalid_code", "配对码不存在", 403)
     if code_row.used_at is not None or code_row.revoked_at is not None:
         raise AppError("code_used", "配对码已被使用或撤销", 403)
-    if code_row.expires_at is not None and code_row.expires_at < now:
+    if code_row.expires_at is not None and as_utc(code_row.expires_at) < now:
         raise AppError("code_expired", "配对码已过期", 403)
 
     existing_row = await db.execute(select(Member).where(Member.name == body.name))

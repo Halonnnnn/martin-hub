@@ -1,0 +1,28 @@
+# Ingress：需要集群已安装 Ingress 控制器（nginx/traefik 等）。
+# 把 host 换成你的域名；TLS secret 用 cert-manager 或手动签发。
+# 没有域名/Ingress 时删除本文件，把 20-hub.yaml 的 Service 改成 NodePort 即可。
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: martin-hub
+  namespace: martin
+  annotations:
+    # WebSocket（如用到）在 nginx ingress 下默认支持，无需额外配置；
+    # 如需大文件上传可放开 body 大小限制：
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: martin.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: martin-hub
+                port:
+                  number: 80
+  # tls:
+  #   - hosts: [martin.example.com]
+  #     secretName: martin-tls
